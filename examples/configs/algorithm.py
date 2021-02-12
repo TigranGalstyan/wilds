@@ -4,6 +4,12 @@ algorithm_defaults = {
         'uniform_over_groups': False,
         'eval_loader': 'standard',
     },
+    'ERM_HSIC': {
+        'train_loader': 'standard',
+        'uniform_over_groups': False,
+        'eval_loader': 'standard',
+        'hsic_beta': 1.0,
+    },
     'groupDRO': {
         'train_loader': 'standard',
         'uniform_over_groups': True,
