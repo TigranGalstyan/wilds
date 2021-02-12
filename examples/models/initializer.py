@@ -1,9 +1,12 @@
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision
 from models.bert import BertClassifier, BertFeaturizer
 from models.resnet_multispectral import ResNet18
 from models.layers import Identity
 from models.gnn import GINVirtual
+from models.mnist_simple import MNIST_SIMPLE_CNN
+from models.resnet18k import make_resnet18k
 
 def initialize_model(config, d_out):
     if config.model == 'resnet18_ms':
@@ -26,6 +29,10 @@ def initialize_model(config, d_out):
         model = nn.Linear(out_features=d_out, **config.model_kwargs)
     elif config.model == 'gin-virtual':
         model = GINVirtual(num_tasks=d_out, **config.model_kwargs)
+    elif config.model == 'mnist-simple':
+        model = MNIST_SIMPLE_CNN(input_shape=(50, 28, 28), out_dim=d_out)
+    elif config.model == 'resnet18k':
+        model = make_resnet18k(d_out=d_out, **config.model_kwargs)
     else:
         raise ValueError('Model not recognized.')
     return model
