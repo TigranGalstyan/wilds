@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from algorithms.group_algorithm import GroupAlgorithm
 from scheduler import initialize_scheduler
 from optimizer import initialize_optimizer
@@ -50,14 +51,29 @@ class SingleModelAlgorithm(GroupAlgorithm):
         x = x.to(self.device)
         y_true = y_true.to(self.device)
         g = self.grouper.metadata_to_group(metadata).to(self.device)
-        outputs = self.model(x)
 
         results = {
             'g': g,
             'y_true': y_true,
-            'y_pred': outputs,
             'metadata': metadata,
-            }
+        }
+
+        # Passing features forward for DenseNet
+        if self.model.__class__.__name__ == 'DenseNet':
+            features = self.model.features(x)
+            features = F.relu(features, inplace=True)
+            features = F.adaptive_avg_pool2d(features, (1, 1))
+            features = torch.flatten(features, 1)
+            outputs = self.model.classifier(features)
+            results['features'] = features
+        elif self.model.__class__.__name__ == 'MNIST_SIMPLE_CNN' or self.model.__class__.__name__ == 'PreActResNet':
+            features = self.model.features(x)
+            outputs = self.model.final(features)
+            results['features'] = features
+        else:
+            outputs = self.model(x)
+
+        results['y_pred'] = outputs
         return results
 
     def objective(self, results):
