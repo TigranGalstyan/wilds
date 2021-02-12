@@ -84,7 +84,10 @@ class DeepCORAL(SingleModelAlgorithm):
 
     def objective(self, results):
         # extract features
-        features = results.pop('features')
+        if self.is_training:
+            features = results.pop('features')
+        else:
+            features = results['features']  # Keep Features in dict for further HSIC computations
 
         if self.is_training:
             # split into groups
