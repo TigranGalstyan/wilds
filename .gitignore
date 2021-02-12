@@ -6,3 +6,8 @@ wilds.egg-info
 examples/*.ipynb
 examples/.ipynb_checkpoints/
 .ipynb_checkpoints/
+*.csv
+*.json
+*.sh
+logs_*
+*.pdf
