@@ -3,6 +3,7 @@ from tqdm import tqdm
 import torch
 from utils import save
 import torch.autograd.profiler as profiler
+from wilds.common.utils import conditional_hsic
 
 def log_results(algorithm, dataset, general_logger, epoch, batch_idx):
     if algorithm.has_log:
@@ -125,25 +126,81 @@ def train(algorithm, datasets, general_logger, config, epoch_offset, best_val_me
 
 def evaluate(algorithm, datasets, epoch, general_logger, config):
     algorithm.eval()
-    for split, dataset in datasets.items():
+    z_splits = {}
+    y_splits = {}
+    c_splits = {}
+    for split, dataset in list(datasets.items()):
         if (not config.evaluate_all_splits) and (split not in config.eval_splits):
             continue
         epoch_y_true = []
         epoch_y_pred = []
+        epoch_z = []
         epoch_metadata = []
         iterator = tqdm(dataset['loader']) if config.progress_bar else dataset['loader']
         for batch in iterator:
             batch_results = algorithm.evaluate(batch)
             epoch_y_true.append(batch_results['y_true'].clone().detach())
             epoch_y_pred.append(batch_results['y_pred'].clone().detach())
+            epoch_z.append(batch_results['features'].clone().detach())
             epoch_metadata.append(batch_results['metadata'].clone().detach())
 
+        epoch_y_pred, epoch_y_true, epoch_z, epoch_metadata =\
+            torch.cat(epoch_y_pred), torch.cat(epoch_y_true), torch.cat(epoch_z), torch.cat(epoch_metadata)
+
         results, results_str = dataset['dataset'].eval(
-            torch.cat(epoch_y_pred),
-            torch.cat(epoch_y_true),
-            torch.cat(epoch_metadata))
+            epoch_y_pred,
+            epoch_y_true,
+            epoch_metadata)
+
+        if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28']:
+            if config.dataset == 'camelyon17':
+                metadata = torch.tensor(epoch_metadata / 10, dtype=torch.long) # slides => hospitals
+            else:
+                metadata = epoch_metadata
+            c = dataset['dataset'].dataset._eval_grouper.metadata_to_group(metadata)
+            c_splits[split] = c
+            c = torch.eye(5, device=c.device)[c]
+            y = torch.eye(2 if config.dataset == 'camelyon17' else 3, device=epoch_y_true.device)[epoch_y_true]
+            z_splits[split] = epoch_z
+            y_splits[split] = y
+            if split == 'train':
+                hsic_mean, hsic_std = conditional_hsic(epoch_z, c, y)
+                results['hsic_std'] = hsic_std
+                results['hsic_mean'] = hsic_mean
+                results_str += 'HSIC std_mean: {:.4f} {:.4f}\n'.format(hsic_mean, hsic_std)
+            else:
+                results['hsic_std'] = 0
+                results['hsic_mean'] = 0
+
+
 
         results['epoch'] = epoch
         dataset['eval_logger'].log(results)
         general_logger.write(f'Eval split {split} at epoch {epoch}:\n')
         general_logger.write(results_str)
+
+    if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28']:
+
+        if config.save_z:
+            torch.save(z_splits, os.path.join(config.log_dir, f'z_splits_epoch_{epoch}.pt'))
+            torch.save(y_splits, os.path.join(config.log_dir, f'y_splits_epoch_{epoch}.pt'))
+            torch.save(c_splits, os.path.join(config.log_dir, f'c_splits_epoch_{epoch}.pt'))
+
+        z = z_splits['train'][c_splits['train']!=0]
+        y = y_splits['train'][c_splits['train']!=0]
+        c = c_splits['train'][c_splits['train']!=0]
+
+        c = torch.eye(5, device=c.device)[c]
+        c_val = torch.eye(5, device=c.device)[c_splits['val']]
+        c_test = torch.eye(5, device=c.device)[c_splits['test']]
+
+        hsic_val_mean, hsic_val_std = conditional_hsic(torch.cat([z, z_splits['val']]), torch.cat([y, y_splits['val']]), torch.cat([c, c_val]))
+        hsic_test_mean, hsic_test_std = conditional_hsic(torch.cat([z, z_splits['test']]), torch.cat([y, y_splits['test']]), torch.cat([c, c_test]))
+
+        general_logger.write("Hsic between hospitals {}: {:.4f} {:.4f}\n".format('1 3 4' if config.dataset == 'camelyon17' else '1 2 3',
+                                                                                 hsic_val_mean, hsic_val_std))
+        general_logger.write("Hsic between hospitals {}: {:.4f} {:.4f}\n".format('2 3 4' if config.dataset == 'camelyon17' else '1 2 4',
+                                                                                 hsic_test_mean, hsic_test_std))
+
+        datasets['val']['eval_logger'].log({'hsic_mean': hsic_val_mean, 'hsic_std': hsic_val_std})
+        datasets['test']['eval_logger'].log({'hsic_mean': hsic_test_mean, 'hsic_std': hsic_test_std})

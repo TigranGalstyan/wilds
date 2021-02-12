@@ -67,6 +67,7 @@ def main():
     parser.add_argument('--irm_lambda', type=float)
     parser.add_argument('--irm_penalty_anneal_iters', type=int)
     parser.add_argument('--algo_log_metric')
+    parser.add_argument('--hsic_beta', type=float)
 
     # Model selection
     parser.add_argument('--val_metric')
@@ -91,6 +92,7 @@ def main():
     parser.add_argument('--eval_splits', nargs='+', default=[])
     parser.add_argument('--eval_only', type=parse_bool, const=True, nargs='?', default=False)
     parser.add_argument('--eval_epoch', default=None, type=int)
+    parser.add_argument('--save_z', type=parse_bool, const=True, nargs='?', default=False)
 
     # Misc
     parser.add_argument('--device', type=int, default=0)
