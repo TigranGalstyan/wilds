@@ -2,3 +2,7 @@ __pycache__
 build
 dist
 wilds.egg-info
+*.ipynb
+examples/*.ipynb
+examples/.ipynb_checkpoints/
+.ipynb_checkpoints/
