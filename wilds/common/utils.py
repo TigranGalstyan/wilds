@@ -2,6 +2,8 @@ import torch, torch_scatter
 import numpy as np
 from torch.utils.data import Subset
 from pandas.api.types import CategoricalDtype
+from tqdm import tqdm
+
 
 def minimum(numbers, empty_val=0.):
     if isinstance(numbers, torch.Tensor):
@@ -126,3 +128,54 @@ def threshold_at_recall(y_pred, y_true, global_recall=0.6):
     """ Calculate the model threshold to use to achieve a desired global_recall level. Assumes that
     y_true is a vector of the true binary labels."""
     return np.percentile(y_pred[y_true == 1], global_recall)
+
+
+def rbf_mul(pattern_1, pattern_2, deg):
+    n = pattern_1.shape[0]
+    G = torch.sum(pattern_1 * pattern_1, dim=-1, keepdim=True)
+    H = torch.sum(pattern_2 * pattern_2, dim=-1, keepdim=True)
+    Q = G.repeat(1, n)
+    R = H.permute(1, 0).repeat(n, 1)
+    H = Q + R - 2 * (pattern_1 @ pattern_2.permute(1, 0))
+    H = torch.exp(-H / 2 / (deg**2))
+    return H
+
+def calculate_width(X):
+    n = X.shape[0]
+    G = torch.sum(X * X, dim=-1, keepdim=True)
+    Q = G.repeat(1, n)
+    R = G.permute(1, 0).repeat(n, 1)
+
+    dists = Q + R - 2 * (X @ X.permute(1, 0))
+    dists = dists - torch.tril(dists)
+    dists = dists.view(n*n, 1)
+    dists = dists[dists>0]
+    if max(dists.shape) == 0:
+        width_x = 0.0001
+    else:
+        width_x = torch.sqrt(0.5 * torch.median(dists))
+    return width_x
+
+def hsic(X, Y):
+    width_x = calculate_width(X)
+    width_y = calculate_width(Y)
+
+    n = X.shape[0]
+    H = torch.eye(n, device=X.device) - torch.ones((n, n), device=X.device) / n
+
+    K = rbf_mul(X, X, width_x)
+    L = rbf_mul(Y, Y, width_y)
+
+    Kc = ((H @ K) @ H)
+    Lc = ((H @ L) @ H)
+    testStat = torch.sum(Kc.T * Lc) / n
+    return testStat
+
+def conditional_hsic(z, c, y, batch_size=128):
+    if batch_size is not None:
+        hsics = []
+        for i in tqdm(range(0, z.shape[0], batch_size)):
+            hsics.append(hsic(torch.cat([z[i:i+batch_size], y[i:i+batch_size]], dim=-1), c[i:i+batch_size]))
+        return np.mean(hsics), np.std(hsics)
+
+    return hsic(torch.cat([z, y], dim=-1), c)
