@@ -59,8 +59,14 @@ class ERM_HSIC_GradPenalty(SingleModelAlgorithm):
         self.num_domains = self.grouper.cardinality.item()
         self.beta = config.hsic_beta
         self.lamb = config.grad_penalty_lamb
-        self.key_regex = '.*'  # TODO: config.key_regex
         self.d_out = d_out
+
+        # select the parameters to penalize
+        self.params_regex = config.params_regex
+        self.selected_param_names = list(dict(self.named_parameters()).keys())
+        self.selected_param_names = list(filter(lambda name: re.match(self.params_regex, name) is not None,
+                                                self.selected_param_names))
+        print("The selected parameters are:\n", self.selected_param_names)
 
     def objective(self, results):
         c = results['g']
@@ -82,15 +88,14 @@ class ERM_HSIC_GradPenalty(SingleModelAlgorithm):
                 if mask.sum() == 0:
                     continue
                 domain_avg_loss = torch.mean(example_losses[mask])
-                g = torch.autograd.grad(domain_avg_loss, list(self.parameters()),
+                params_dict = dict(self.named_parameters())
+                selected_params = [params_dict[k] for k in self.selected_param_names]
+                g = torch.autograd.grad(domain_avg_loss, selected_params,
                                         retain_graph=True, create_graph=True)
                 avg_gradients[domain_idx] = g
 
             grad_penalty = 0.0
-            param_names = dict(self.named_parameters()).keys()
-            for k, name in enumerate(param_names):
-                if re.match(self.key_regex, name) is None:
-                    continue
+            for k in range(len(self.selected_param_names)):
                 g = [avg_gradients[domain_idx][k] for domain_idx in range(self.num_domains)
                         if avg_gradients[domain_idx] is not None]
                 actual_num_domains = len(g)

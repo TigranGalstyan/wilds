@@ -15,7 +15,8 @@ algorithm_defaults = {
         'uniform_over_groups': False,
         'eval_loader': 'standard',
         'hsic_beta': 1.0,
-        'grad_penalty_lamb': 1.0
+        'grad_penalty_lamb': 1.0,
+        'params_regex': '.*'
     },
     'groupDRO': {
         'train_loader': 'standard',

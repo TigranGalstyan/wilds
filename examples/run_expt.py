@@ -69,6 +69,8 @@ def main():
     parser.add_argument('--algo_log_metric')
     parser.add_argument('--hsic_beta', type=float)
     parser.add_argument('--grad_penalty_lamb', type=float)
+    parser.add_argument('--params_regex', type=str,
+                        help='Regular expression specifying which gradients to penalize.')
 
     # Model selection
     parser.add_argument('--val_metric')
