@@ -1,6 +1,6 @@
 from wilds.common.utils import get_counts
 from algorithms.ERM import ERM
-from algorithms.ERM_HSIC import ERM_HSIC
+from algorithms.ERM_HSIC import ERM_HSIC, ERM_HSIC_GradPenalty
 from algorithms.groupDRO import GroupDRO
 from algorithms.deepCORAL import DeepCORAL
 from algorithms.IRM import IRM
@@ -41,6 +41,14 @@ def initialize_algorithm(config, datasets, train_grouper):
             n_train_steps=n_train_steps)
     elif config.algorithm=='ERM_HSIC':
         algorithm = ERM_HSIC(
+            config=config,
+            d_out=d_out,
+            grouper=train_grouper,
+            loss=loss,
+            metric=metric,
+            n_train_steps=n_train_steps)
+    elif config.algorithm=='ERM_HSIC_GradPenalty':
+        algorithm = ERM_HSIC_GradPenalty(
             config=config,
             d_out=d_out,
             grouper=train_grouper,

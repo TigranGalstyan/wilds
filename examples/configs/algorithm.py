@@ -10,6 +10,13 @@ algorithm_defaults = {
         'eval_loader': 'standard',
         'hsic_beta': 1.0,
     },
+    'ERM_HSIC_GradPenalty': {
+        'train_loader': 'standard',
+        'uniform_over_groups': False,
+        'eval_loader': 'standard',
+        'hsic_beta': 1.0,
+        'grad_penalty_lamb': 1.0
+    },
     'groupDRO': {
         'train_loader': 'standard',
         'uniform_over_groups': True,
