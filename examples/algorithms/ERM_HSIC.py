@@ -92,19 +92,17 @@ class ERM_HSIC_GradPenalty(SingleModelAlgorithm):
                 selected_params = [params_dict[k] for k in self.selected_param_names]
                 g = torch.autograd.grad(domain_avg_loss, selected_params,
                                         retain_graph=True, create_graph=True)
+                g = torch.cat([x.view((-1,)) for x in g], dim=0)  # concatenate all gradients
                 avg_gradients[domain_idx] = g
 
             grad_penalty = 0.0
-            for k in range(len(self.selected_param_names)):
-                g = [avg_gradients[domain_idx][k] for domain_idx in range(self.num_domains)
-                        if avg_gradients[domain_idx] is not None]
-                actual_num_domains = len(g)
-                g = torch.stack(g).reshape((actual_num_domains, -1))
+            avg_gradients = torch.stack([g for g in avg_gradients if g is not None])
+            actual_num_domains = len(avg_gradients)
 
-                # compute mean of pairwise gradient similarities, i.e., mean_{i<j} ||g_i - g_j||^2
-                term1 = actual_num_domains * torch.sum(g**2, dim=1).sum(dim=0)
-                term2 = torch.sum(torch.sum(g, dim=0)**2, dim=0)
-                grad_penalty += 2.0 / (actual_num_domains * (actual_num_domains - 1)) * (term1 - term2)
+            # compute mean of pairwise gradient similarities, i.e., mean_{i<j} ||g_i - g_j||^2
+            term1 = actual_num_domains * torch.sum(avg_gradients**2, dim=1).sum(dim=0)
+            term2 = torch.sum(torch.sum(avg_gradients, dim=0)**2, dim=0)
+            grad_penalty += 2.0 / (actual_num_domains * (actual_num_domains - 1)) * (term1 - term2)
         else:
             grad_penalty = 0.0
 
