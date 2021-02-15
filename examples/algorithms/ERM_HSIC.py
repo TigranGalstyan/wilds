@@ -101,9 +101,16 @@ class ERM_HSIC_GradPenalty(SingleModelAlgorithm):
 
             if actual_num_domains > 1:
                 # compute mean of pairwise gradient similarities, i.e., mean_{i<j} ||g_i - g_j||^2
-                term1 = actual_num_domains * torch.sum(avg_gradients**2, dim=1).sum(dim=0)
-                term2 = torch.sum(torch.sum(avg_gradients, dim=0)**2, dim=0)
-                grad_penalty += 2.0 / (actual_num_domains * (actual_num_domains - 1)) * (term1 - term2)
+                # term1 = actual_num_domains * torch.sum(avg_gradients**2, dim=1).sum(dim=0)
+                # term2 = torch.sum(torch.sum(avg_gradients, dim=0)**2, dim=0)
+                # grad_penalty += 2.0 / (actual_num_domains * (actual_num_domains - 1)) * (term1 - term2)
+
+                # compute average leave-one-out-gradient norm
+                total_gradient = avg_gradients.mean(dim=0)
+                for domain_idx in range(actual_num_domains):
+                    total_gradient_without_cur = (actual_num_domains * total_gradient - avg_gradients[domain_idx]) / (actual_num_domains - 1)
+                    diff = total_gradient - total_gradient_without_cur
+                    grad_penalty += torch.norm(diff)
             else:
                 grad_penalty = 0.0
         else:
