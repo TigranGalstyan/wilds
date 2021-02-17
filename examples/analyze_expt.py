@@ -25,6 +25,7 @@ def main():
     parser.add_argument('--algorithm', required=True, choices=supported.algorithms)
     parser.add_argument('--root_dir', required=True,
                         help='The directory where [dataset]/data can be found (or should be downloaded to, if it does not exist).')
+    parser.add_argument('--analyze_sample', default=1)
 
     # Dataset
     parser.add_argument('--split_scheme', help='Identifies how the train/val/test split is constructed. Choices are dataset-specific.')
@@ -240,7 +241,7 @@ def main():
         general_logger=logger,
         config=config)
 
-    logistics = all_logistics(z_splits, c_splits, y_splits, epoch=epoch, sample=20)
+    logistics = all_logistics(z_splits, c_splits, y_splits, epoch=epoch, sample=config.analyze_sample)
 
     logistics['G0'] = results['id_val']['acc_avg']
     logistics['G1'] = logistics['val_on_val']
