@@ -12,7 +12,7 @@ def initialize_model(config, d_out):
     if config.model == 'resnet18_ms':
         # multispectral resnet 18
         model = ResNet18(num_classes=d_out, **config.model_kwargs)
-    elif config.model in ('resnet50', 'resnet34', 'wideresnet50','densenet121'):
+    elif config.model in ('resnet18', 'resnet50', 'resnet34', 'wideresnet50','densenet121'):
         model = initialize_torchvision_model(
             name=config.model,
             d_out=d_out,
@@ -45,7 +45,7 @@ def initialize_torchvision_model(name, d_out, **kwargs):
     elif name=='densenet121':
         constructor_name = name
         last_layer_name = 'classifier'
-    elif name in ('resnet50', 'resnet34'):
+    elif name in ('resnet50', 'resnet34', 'resnet18'):
         constructor_name = name
         last_layer_name = 'fc'
     else:
