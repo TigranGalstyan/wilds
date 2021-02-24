@@ -91,9 +91,8 @@ class SingleModelAlgorithm(GroupAlgorithm):
             results['features'] = features
         elif self.model.__class__.__name__ == 'ResNet':
             self.model.features = partial(get_resnet_features_fn, self.model)
-            self.model.final = self.model.fc
             features = self.model.features(x)
-            outputs = self.model.final(features)
+            outputs = self.model.fc(features)
             results['features'] = features
         else:
             outputs = self.model(x)

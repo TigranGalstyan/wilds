@@ -34,8 +34,9 @@ dataset_defaults = {
     },
     'camelyon17': {
         'split_scheme': 'official',
+        # 'model': 'resnet18',
         'model': 'densenet121',
-        # 'model_kwargs': {'pretrained': False},
+        'model_kwargs': {'pretrained': False},
         'train_transform': 'image_base',
         'eval_transform': 'image_base',
         'loss_function': 'cross_entropy',
