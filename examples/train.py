@@ -126,6 +126,7 @@ def train(algorithm, datasets, general_logger, config, epoch_offset, best_val_me
 
 def evaluate(algorithm, datasets, epoch, general_logger, config):
     algorithm.eval()
+    overall_results = {}
     z_splits = {}
     y_splits = {}
     c_splits = {}
@@ -172,12 +173,11 @@ def evaluate(algorithm, datasets, epoch, general_logger, config):
                 results['hsic_std'] = 0
                 results['hsic_mean'] = 0
 
-
-
         results['epoch'] = epoch
         dataset['eval_logger'].log(results)
         general_logger.write(f'Eval split {split} at epoch {epoch}:\n')
         general_logger.write(results_str)
+        overall_results[split] = results
 
     if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28']:
 
@@ -191,16 +191,26 @@ def evaluate(algorithm, datasets, epoch, general_logger, config):
         c = c_splits['train'][c_splits['train']!=0]
 
         c = torch.eye(5, device=c.device)[c]
-        c_val = torch.eye(5, device=c.device)[c_splits['val']]
-        c_test = torch.eye(5, device=c.device)[c_splits['test']]
 
-        hsic_val_mean, hsic_val_std = conditional_hsic(torch.cat([z, z_splits['val']]), torch.cat([y, y_splits['val']]), torch.cat([c, c_val]))
-        hsic_test_mean, hsic_test_std = conditional_hsic(torch.cat([z, z_splits['test']]), torch.cat([y, y_splits['test']]), torch.cat([c, c_test]))
+        if (not config.evaluate_all_splits) and ('val'  in config.eval_splits):
+            c_val = torch.eye(5, device=c.device)[c_splits['val']]
+            hsic_val_mean, hsic_val_std = conditional_hsic(torch.cat([z, z_splits['val']]),
+                                                           torch.cat([y, y_splits['val']]), torch.cat([c, c_val]))
+            general_logger.write("Hsic between hospitals {}: {:.4f} {:.4f}\n".format(
+                '1 3 4' if config.dataset == 'camelyon17' else '1 2 3', hsic_val_mean, hsic_val_std))
+            datasets['val']['eval_logger'].log({'hsic_mean': hsic_val_mean, 'hsic_std': hsic_val_std})
+            overall_results['val']['hsic_mean'] = hsic_val_mean
+            overall_results['val']['hsic_std'] = hsic_val_std
 
-        general_logger.write("Hsic between hospitals {}: {:.4f} {:.4f}\n".format('1 3 4' if config.dataset == 'camelyon17' else '1 2 3',
-                                                                                 hsic_val_mean, hsic_val_std))
-        general_logger.write("Hsic between hospitals {}: {:.4f} {:.4f}\n".format('2 3 4' if config.dataset == 'camelyon17' else '1 2 4',
-                                                                                 hsic_test_mean, hsic_test_std))
 
-        datasets['val']['eval_logger'].log({'hsic_mean': hsic_val_mean, 'hsic_std': hsic_val_std})
-        datasets['test']['eval_logger'].log({'hsic_mean': hsic_test_mean, 'hsic_std': hsic_test_std})
+        if (not config.evaluate_all_splits) and ('test'  in config.eval_splits):
+            c_test = torch.eye(5, device=c.device)[c_splits['test']]
+            hsic_test_mean, hsic_test_std = conditional_hsic(torch.cat([z, z_splits['test']]),
+                                                             torch.cat([y, y_splits['test']]), torch.cat([c, c_test]))
+            general_logger.write("Hsic between hospitals {}: {:.4f} {:.4f}\n".format(
+                '2 3 4' if config.dataset == 'camelyon17' else '1 2 4', hsic_test_mean, hsic_test_std))
+            datasets['test']['eval_logger'].log({'hsic_mean': hsic_test_mean, 'hsic_std': hsic_test_std})
+            overall_results['test']['hsic_mean'] = hsic_test_mean
+            overall_results['test']['hsic_std'] = hsic_test_std
+
+    return overall_results, z_splits, y_splits, c_splits
