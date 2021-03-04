@@ -59,6 +59,7 @@ class ERM_HSIC_GradPenalty(SingleModelAlgorithm):
         self.num_domains = self.grouper.cardinality.item()
         self.beta = config.hsic_beta
         self.lamb = config.grad_penalty_lamb
+        self.label_cond = config.label_cond
         self.d_out = d_out
 
         # select the parameters to penalize
@@ -67,6 +68,42 @@ class ERM_HSIC_GradPenalty(SingleModelAlgorithm):
         self.selected_param_names = list(filter(lambda name: re.match(self.params_regex, name) is not None,
                                                 self.selected_param_names))
         print("The selected parameters are:\n", self.selected_param_names)
+
+    def compute_gradient_penalty(self, example_losses, domains):
+        avg_gradients = [None] * self.num_domains
+        for domain_idx in range(self.num_domains):
+            mask = (domains == domain_idx)
+            if mask.sum() == 0:
+                continue
+            domain_avg_loss = torch.mean(example_losses[mask])
+            params_dict = dict(self.named_parameters())
+            selected_params = [params_dict[k] for k in self.selected_param_names]
+            g = torch.autograd.grad(domain_avg_loss, selected_params,
+                                    retain_graph=True, create_graph=True)
+            g = torch.cat([x.view((-1,)) for x in g], dim=0)  # concatenate all gradients
+            avg_gradients[domain_idx] = g
+
+        grad_penalty = 0.0
+        avg_gradients = torch.stack([g for g in avg_gradients if g is not None])
+        actual_num_domains = len(avg_gradients)
+
+        if actual_num_domains > 1:
+            # compute mean of pairwise gradient similarities, i.e., mean_{i<j} ||g_i - g_j||^2
+            # term1 = actual_num_domains * torch.sum(avg_gradients**2, dim=1).sum(dim=0)
+            # term2 = torch.sum(torch.sum(avg_gradients, dim=0)**2, dim=0)
+            # grad_penalty += 2.0 / (actual_num_domains * (actual_num_domains - 1)) * (term1 - term2)
+
+            # compute average leave-one-out-gradient norm
+            total_gradient = avg_gradients.mean(dim=0)
+            for domain_idx in range(actual_num_domains):
+                total_gradient_without_cur = (actual_num_domains * total_gradient - avg_gradients[domain_idx]) / (
+                        actual_num_domains - 1)
+                grad_penalty += torch.norm(total_gradient - total_gradient_without_cur)
+            # TODO: later average over actual_num_domains, so that picking self.lamb becomes easier
+        else:
+            grad_penalty = 0.0
+
+        return grad_penalty
 
     def objective(self, results):
         c = results['g']
@@ -82,37 +119,19 @@ class ERM_HSIC_GradPenalty(SingleModelAlgorithm):
         if self.is_training:
             example_losses = F.cross_entropy(input=results['y_pred'], target=results['y_true'],
                                              reduction='none')
-            avg_gradients = [None] * self.num_domains
-            for domain_idx in range(self.num_domains):
-                mask = results['g'] == domain_idx
-                if mask.sum() == 0:
-                    continue
-                domain_avg_loss = torch.mean(example_losses[mask])
-                params_dict = dict(self.named_parameters())
-                selected_params = [params_dict[k] for k in self.selected_param_names]
-                g = torch.autograd.grad(domain_avg_loss, selected_params,
-                                        retain_graph=True, create_graph=True)
-                g = torch.cat([x.view((-1,)) for x in g], dim=0)  # concatenate all gradients
-                avg_gradients[domain_idx] = g
-
-            grad_penalty = 0.0
-            avg_gradients = torch.stack([g for g in avg_gradients if g is not None])
-            actual_num_domains = len(avg_gradients)
-
-            if actual_num_domains > 1:
-                # compute mean of pairwise gradient similarities, i.e., mean_{i<j} ||g_i - g_j||^2
-                # term1 = actual_num_domains * torch.sum(avg_gradients**2, dim=1).sum(dim=0)
-                # term2 = torch.sum(torch.sum(avg_gradients, dim=0)**2, dim=0)
-                # grad_penalty += 2.0 / (actual_num_domains * (actual_num_domains - 1)) * (term1 - term2)
-
-                # compute average leave-one-out-gradient norm
-                total_gradient = avg_gradients.mean(dim=0)
-                for domain_idx in range(actual_num_domains):
-                    total_gradient_without_cur = (actual_num_domains * total_gradient - avg_gradients[domain_idx]) / (actual_num_domains - 1)
-                    diff = total_gradient - total_gradient_without_cur
-                    grad_penalty += torch.norm(diff)
+            if not self.label_cond:
+                grad_penalty = self.compute_gradient_penalty(example_losses, results['g'])
             else:
                 grad_penalty = 0.0
+                label_set = set([label_val.item() for label_val in y_true])
+                for label_value in label_set:
+                    mask = (y_true == label_value)
+                    grad_penalty += self.compute_gradient_penalty(example_losses[mask],
+                                                                  results['g'][mask])
+                grad_penalty /= len(label_set)
+
+            if np.random.randint(1000) == 0:  # TODO: 1000
+                print("Grad penalty:", grad_penalty, self.lamb * grad_penalty)
         else:
             grad_penalty = 0.0
 
