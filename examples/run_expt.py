@@ -72,8 +72,7 @@ def main():
     parser.add_argument('--params_regex', type=str,
                         help='Regular expression specifying which gradients to penalize.')
     parser.add_argument('--label_cond', type=parse_bool, const=True, nargs='?', default=False)
-    parser.add_argument('--dann_alpha', type=float)
-    parser.add_argument('--dann_beta', type=float)
+    parser.add_argument('--dann_lamb', type=float)
     parser.add_argument('--dann_dc_name', type=str)
 
     # Model selection

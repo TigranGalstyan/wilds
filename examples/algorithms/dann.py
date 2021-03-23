@@ -35,8 +35,7 @@ class DANN(SingleModelAlgorithm):
         model = initialize_model(config, d_out).to(config.device)
 
         self.num_domains = grouper.cardinality.item()
-        self.alpha = config.dann_alpha
-        self.beta = config.dann_beta
+        self.lamb = config.dann_lamb
         self.dc_name = config.dann_dc_name
         self.d_out = d_out
 
@@ -56,11 +55,11 @@ class DANN(SingleModelAlgorithm):
     def process_batch(self, batch):
         ret = super(self, DANN).process_batch(batch)
         features = ret['features']
-        features = ReverseGradLayer(features, self.alpha)
+        features = ReverseGradLayer(features, self.lamb)
         ret['domain_pred'] = self.model.domain_classifier(features)
         return ret
 
     def objective(self, results):
         y_loss = self.loss.compute(results['y_pred'], results['y_true'], return_dict=False)
         domain_loss = self.loss.compute(results['domain_pred'], results['g'], return_dict=False)
-        return y_loss + self.beta * domain_loss
+        return y_loss + domain_loss

@@ -45,8 +45,7 @@ algorithm_defaults = {
         'train_loader': 'standard',
         'uniform_over_groups': False,
         'eval_loader': 'standard',
-        'dann_beta': 1.0,
-        'dann_alpha': 1.0,
+        'dann_lamb': 1.0,
         'dann_dc_name': 'unspecified'
     },
 }

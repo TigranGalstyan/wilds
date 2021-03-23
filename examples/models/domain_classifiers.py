@@ -36,12 +36,10 @@ def register_parser(_container, parser_name):
     return decorator
 
 
-@register_parser(_container, 'example')
-def example(name, **kwargs):
-    num_features = 128
+@register_parser(_container, 'mnist_simple_1hidden')
+def mnist_simple_1hidden(**kwargs):
     num_domains = kwargs.get('num_domains', 4)
-    hidden_sizes = [64, 64]
-    return MLP(num_features=num_features, num_domains=num_domains, hidden_sizes=hidden_sizes)
+    return MLP(num_features=180, num_domains=num_domains, hidden_sizes=[128])
 
 
 def initialize_domain_classifier(name, **kwargs):
