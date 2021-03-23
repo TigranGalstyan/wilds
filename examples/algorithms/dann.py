@@ -9,7 +9,7 @@ class ReverseGradLayer(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, lamb):
         ctx.alpha = lamb
-        return x.view_as(x)
+        return x
 
     @staticmethod
     def backward(ctx, grad_output):
