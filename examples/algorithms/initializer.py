@@ -1,6 +1,7 @@
 from wilds.common.utils import get_counts
 from algorithms.ERM import ERM
 from algorithms.ERM_HSIC import ERM_HSIC, ERM_HSIC_GradPenalty
+from algorithms.DANN import DANN
 from algorithms.groupDRO import GroupDRO
 from algorithms.deepCORAL import DeepCORAL
 from algorithms.IRM import IRM

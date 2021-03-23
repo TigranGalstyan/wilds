@@ -56,6 +56,6 @@ algo_log_metrics = {
 transforms = ['bert', 'image_base', 'image_resize_and_center_crop', 'poverty_train']
 models = ['resnet18_ms', 'resnet50', 'resnet34', 'wideresnet50', 'densenet121', 'bert-base-uncased', 'gin-virtual',
     'logistic_regression', 'resnet18k', 'resnet18']
-algorithms = ['ERM', 'groupDRO', 'deepCORAL', 'IRM', 'ERM_HSIC', 'ERM_HSIC_GradPenalty']
+algorithms = ['ERM', 'groupDRO', 'deepCORAL', 'IRM', 'ERM_HSIC', 'ERM_HSIC_GradPenalty', 'DANN']
 optimizers = ['SGD', 'Adam', 'AdamW']
 schedulers = ['linear_schedule_with_warmup', 'ReduceLROnPlateau', 'StepLR']
