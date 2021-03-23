@@ -2,13 +2,13 @@ import torch.autograd
 
 from algorithms.single_model_algorithm import SingleModelAlgorithm
 from models.initializer import initialize_model
-from modeels.domain_classifiers import initialize_domain_classifier
+from models.domain_classifiers import initialize_domain_classifier
 
 
 class ReverseGradLayer(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, x, alpha):
-        ctx.alpha = alpha
+    def forward(ctx, x, lamb):
+        ctx.alpha = lamb
         return x.view_as(x)
 
     @staticmethod
@@ -40,7 +40,8 @@ class DANN(SingleModelAlgorithm):
         self.d_out = d_out
 
         # initialize domain classifier
-        model.domain_classifier = initialize_domain_classifier(name=self.dc_name, num_domains=self.num_domains)
+        model.domain_classifier = initialize_domain_classifier(name=self.dc_name,
+                                                               num_domains=self.num_domains).to(config.device)
 
         # initialize module
         super().__init__(
@@ -53,9 +54,9 @@ class DANN(SingleModelAlgorithm):
         )
 
     def process_batch(self, batch):
-        ret = super(self, DANN).process_batch(batch)
+        ret = super().process_batch(batch)
         features = ret['features']
-        features = ReverseGradLayer(features, self.lamb)
+        features = ReverseGradLayer.apply(features, self.lamb)
         ret['domain_pred'] = self.model.domain_classifier(features)
         return ret
 

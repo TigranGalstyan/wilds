@@ -16,7 +16,7 @@ class MLP(nn.Module):
             layers.append(torch.nn.ReLU(inplace=True))
             prev_size = dim
         layers.append(torch.nn.Linear(prev_size, num_domains))
-        self.classifier = torch.nn.Sequential(tuple(layers))
+        self.classifier = torch.nn.Sequential(*layers)
 
     def forward(self, x):
         return self.classifier(x)
