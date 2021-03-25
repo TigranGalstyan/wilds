@@ -11,6 +11,7 @@ from wilds.datasets.cmnist_dataset import CMNISTDataset
 from wilds.datasets.cmnist4_dataset import CMNIST4Dataset
 from wilds.datasets.cmnist7_dataset import CMNIST7Dataset
 from wilds.datasets.cmnist28_dataset import CMNIST28Dataset
+from wilds.datasets.cmnist10_dataset import CMNIST10Dataset
 from wilds.datasets.fmow_dataset import FMoWDataset
 from wilds.datasets.iwildcam_dataset import IWildCamDataset
 from wilds.datasets.ogbmolpcba_dataset import OGBPCBADataset
@@ -30,6 +31,7 @@ datasets = {
     'cmnist4': CMNIST4Dataset,
     'cmnist7': CMNIST7Dataset,
     'cmnist28': CMNIST28Dataset,
+    'cmnist10': CMNIST10Dataset,
     'iwildcam': IWildCamDataset,
     'waterbirds': WaterbirdsDataset,
     'yelp': YelpDataset,
@@ -56,6 +58,6 @@ algo_log_metrics = {
 transforms = ['bert', 'image_base', 'image_resize_and_center_crop', 'poverty_train']
 models = ['resnet18_ms', 'resnet50', 'resnet34', 'wideresnet50', 'densenet121', 'bert-base-uncased', 'gin-virtual',
     'logistic_regression', 'resnet18k']
-algorithms = ['ERM', 'groupDRO', 'deepCORAL', 'IRM', 'ERM_HSIC', 'ERM_HSIC_GradPenalty']
+algorithms = ['ERM', 'groupDRO', 'deepCORAL', 'IRM', 'ERM_HSIC', 'ERM_HSIC_GradPenalty', 'ERM_SD', 'ERM_HSIC_SD']
 optimizers = ['SGD', 'Adam', 'AdamW']
 schedulers = ['linear_schedule_with_warmup', 'ReduceLROnPlateau', 'StepLR']
