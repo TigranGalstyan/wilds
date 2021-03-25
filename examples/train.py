@@ -153,7 +153,7 @@ def evaluate(algorithm, datasets, epoch, general_logger, config):
             epoch_y_true,
             epoch_metadata)
 
-        if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28']:
+        if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28', 'cmnist10']:
             if config.dataset == 'camelyon17':
                 metadata = torch.tensor(epoch_metadata / 10, dtype=torch.long) # slides => hospitals
             else:
@@ -161,7 +161,13 @@ def evaluate(algorithm, datasets, epoch, general_logger, config):
             c = dataset['dataset'].dataset._eval_grouper.metadata_to_group(metadata)
             c_splits[split] = c
             c = torch.eye(5, device=c.device)[c]
-            y = torch.eye(2 if config.dataset == 'camelyon17' else 3, device=epoch_y_true.device)[epoch_y_true]
+            if config.dataset == 'camelyon17':
+                n_classes = 2
+            elif config.dataset == 'cmnist10':
+                n_classes = 10
+            else:
+                n_classes = 3
+            y = torch.eye(n_classes, device=epoch_y_true.device)[epoch_y_true]
             z_splits[split] = epoch_z
             y_splits[split] = y
             if split == 'train':
