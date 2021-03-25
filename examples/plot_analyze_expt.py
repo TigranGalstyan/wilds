@@ -5,6 +5,8 @@ import pickle
 import matplotlib.pyplot as plt
 from glob import glob
 
+from tqdm import tqdm
+
 G_labels = ['$e_{G0}$', '$e_{G1}$', '$e_{G2}$', '$e_{G3}$']
 I_labels = ['$d_{I0}$', '$d_{I1}$', '$d_{I2}$']
 edgecolor = ['#00500070', '#400090']
@@ -25,7 +27,8 @@ K_pal = [
             '#f34236',
             '#e81e63'
         ] * 2
-alpha = (0.8, 0.6)
+alpha = (1, 1)
+# alpha = (0.8, 0.6)
 
 
 def save_plot(epoch_errors, x_lim, y_lim, filename):
@@ -64,25 +67,41 @@ def save_plot(epoch_errors, x_lim, y_lim, filename):
     plt.tight_layout()
     plt.savefig(filename)
 
-def failures_to_errors(logistics, num_train_domains, num_val_domains):
+def failures_to_errors(logistics, num_train_domains, num_val_domains, on_test=False):
     e = {}
 
-    e['EG0'] = 1 - logistics['G0']
-    e['EG1'] = 1 - logistics['G1']
-    e['EG2'] = 1 - logistics['G2']
-    e['EG3'] = 1 - logistics['G3']
+    if not on_test:
+        e['EG0'] = 1 - logistics['G0']
+        e['EG1'] = 1 - logistics['G1']
+        e['EG2'] = 1 - logistics['G2']
+        e['EG3'] = 1 - logistics['G3']
 
-    e['EG3'] -= e['EG2']
-    e['EG2'] -= e['EG1']
-    e['EG1'] -= e['EG0']
+        e['EG3'] -= e['EG2']
+        e['EG2'] -= e['EG1']
+        e['EG1'] -= e['EG0']
 
-    e['EI0'] = logistics['I0'] - 1 / num_train_domains
-    e['EI1'] = logistics['I1'] - 1 / num_train_domains  # + num_val_domains)
-    e['EI2'] = logistics['I2'] - 1 / num_train_domains  # + num_val_domains)
+        e['EI0'] = logistics['I0'] - 1 / num_train_domains
+        e['EI1'] = logistics['I1'] - 1 / num_train_domains  # + num_val_domains)
+        e['EI2'] = logistics['I2'] - 1 / num_train_domains  # + num_val_domains)
 
-    e['EI2'] -= e['EI1']
-    e['EI1'] -= e['EI0']
+        e['EI2'] -= e['EI1']
+        e['EI1'] -= e['EI0']
+    else:
+        e['EG0'] = 1 - logistics['G0']
+        e['EG1'] = 1 - logistics['G1_test']
+        e['EG2'] = 1 - logistics['G2_test']
+        e['EG3'] = 1 - logistics['G3_test']
 
+        e['EG3'] -= e['EG2']
+        e['EG2'] -= e['EG1']
+        e['EG1'] -= e['EG0']
+
+        e['EI0'] = logistics['I0'] - 1 / num_train_domains
+        e['EI1'] = logistics['I1_test'] - 1 / num_train_domains  # + num_val_domains)
+        e['EI2'] = logistics['I2_test'] - 1 / num_train_domains  # + num_val_domains)
+
+        e['EI2'] -= e['EI1']
+        e['EI1'] -= e['EI0']
     return e
 
 def main():
@@ -90,34 +109,38 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--log_dir', required=True)
     parser.add_argument('--dataset', default='camelyon17')
+    parser.add_argument('--on_test', action='store_true', default=False)
 
     args = parser.parse_args()
 
     if args.dataset == 'camelyon17':
         num_train_domains = 3
         num_val_domains = 1
-        x_lim = (0, 9)
         y_lim = [(0, 0.5), (0, 0.65)]
+    elif args.dataset == 'cmnist10':
+        num_train_domains = 3
+        num_val_domains = 1
+        y_lim = [(0, 1.0), (0, 1.0)]
     elif args.dataset.startswith('cmnist'):
         num_train_domains = 3
         num_val_domains = 1
-        x_lim = (0, 29)
         y_lim = [(0, 0.70), (0, 0.65)]
     else:
         raise ValueError('Incompatible dataset specified.')
 
-
     epoch_errors = {}
     logistics_files = sorted(glob(os.path.join(args.log_dir, 'tests_epoch_*.pkl')))
-    for logistics_file in logistics_files:
+    for logistics_file in tqdm(logistics_files):
         epoch = int(logistics_file.split('_')[-1].split('.')[0])
 
         with(open(logistics_file, "rb")) as f:
             logistics = pickle.load(f)
 
-        epoch_errors[epoch] = failures_to_errors(logistics, num_train_domains, num_val_domains)
+        epoch_errors[epoch] = failures_to_errors(logistics, num_train_domains, num_val_domains, on_test=args.on_test)
 
+    x_lim = (0, len(epoch_errors) - 1)
     save_plot(epoch_errors, x_lim, y_lim, os.path.join(args.log_dir, 'errors.pdf'))
+    print(epoch_errors)
 
 if __name__=='__main__':
     main()

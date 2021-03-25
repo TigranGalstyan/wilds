@@ -241,7 +241,10 @@ def main():
         general_logger=logger,
         config=config)
 
-    logistics = all_logistics(z_splits, c_splits, y_splits, epoch=epoch, sample=config.analyze_sample)
+    include_test = config.evaluate_all_splits or 'test' in config.eval_splits
+
+    logistics = all_logistics(z_splits, c_splits, y_splits, epoch=epoch, sample=int(config.analyze_sample),
+                              include_test=include_test)
 
     logistics['G0'] = results['id_val']['acc_avg']
     logistics['G1'] = logistics['val_on_val']
@@ -252,6 +255,15 @@ def main():
     logistics['I1'] = logistics['c_val']
     per_class = torch.tensor(list(logistics['c_perclass'].values()))
     logistics['I2'] = torch.mean(per_class).item()
+
+    if include_test:
+        logistics['G1_test'] = logistics['test_on_test']
+        logistics['G2_test'] = logistics['traintest_on_test']
+        logistics['G3_test'] = results['test']['acc_avg']
+
+        logistics['I1_test'] = logistics['c_test']
+        per_class = torch.tensor(list(logistics['c_perclass_test'].values()))
+        logistics['I2_test'] = torch.mean(per_class).item()
 
     with(open(os.path.join(config.log_dir, f'tests_epoch_{epoch}.pkl'), "wb")) as f:
         pickle.dump(logistics, f)
