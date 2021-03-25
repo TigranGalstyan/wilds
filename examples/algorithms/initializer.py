@@ -1,6 +1,8 @@
 from wilds.common.utils import get_counts
 from algorithms.ERM import ERM
 from algorithms.ERM_HSIC import ERM_HSIC, ERM_HSIC_GradPenalty
+from algorithms.ERM_HSIC_SD import ERM_HSIC_SD
+from algorithms.ERM_SD import ERM_SD
 from algorithms.groupDRO import GroupDRO
 from algorithms.deepCORAL import DeepCORAL
 from algorithms.IRM import IRM
@@ -12,13 +14,13 @@ def initialize_algorithm(config, datasets, train_grouper):
 
     # Configure the final layer of the networks used
     # The code below are defaults. Edit this if you need special config for your model.
-    if (train_dataset.is_classification) and (train_dataset.y_size == 1):
+    if train_dataset.is_classification and (train_dataset.y_size == 1):
         # For single-task classification, we have one output per class
         d_out = train_dataset.n_classes
-    elif (train_dataset.is_classification) and (train_dataset.y_size > 1) and (train_dataset.n_classes == 2):
+    elif train_dataset.is_classification and (train_dataset.y_size > 1) and (train_dataset.n_classes == 2):
         # For multi-task binary classification (each output is the logit for each binary class)
         d_out = train_dataset.y_size
-    elif (not train_dataset.is_classification):
+    elif not train_dataset.is_classification:
         # For regression, we have one output per target dimension
         d_out = train_dataset.y_size
     elif train_dataset.is_classification and train_dataset.y_size > 1:
@@ -41,6 +43,22 @@ def initialize_algorithm(config, datasets, train_grouper):
             n_train_steps=n_train_steps)
     elif config.algorithm=='ERM_HSIC':
         algorithm = ERM_HSIC(
+            config=config,
+            d_out=d_out,
+            grouper=train_grouper,
+            loss=loss,
+            metric=metric,
+            n_train_steps=n_train_steps)
+    elif config.algorithm=='ERM_HSIC_SD':
+        algorithm = ERM_HSIC_SD(
+            config=config,
+            d_out=d_out,
+            grouper=train_grouper,
+            loss=loss,
+            metric=metric,
+            n_train_steps=n_train_steps)
+    elif config.algorithm=='ERM_SD':
+        algorithm = ERM_SD(
             config=config,
             d_out=d_out,
             grouper=train_grouper,
