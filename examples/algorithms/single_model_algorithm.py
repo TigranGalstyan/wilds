@@ -1,9 +1,28 @@
+from functools import partial
+
 import torch
 import torch.nn.functional as F
 from algorithms.group_algorithm import GroupAlgorithm
 from scheduler import initialize_scheduler
 from optimizer import initialize_optimizer
 from torch.nn.utils import clip_grad_norm_
+
+
+def get_resnet_features_fn(self, x):
+    x = self.conv1(x)
+    x = self.bn1(x)
+    x = self.relu(x)
+    x = self.maxpool(x)
+
+    x = self.layer1(x)
+    x = self.layer2(x)
+    x = self.layer3(x)
+    x = self.layer4(x)
+
+    x = self.avgpool(x)
+    x = torch.flatten(x, 1)
+    return x
+
 
 class SingleModelAlgorithm(GroupAlgorithm):
     """
@@ -69,6 +88,11 @@ class SingleModelAlgorithm(GroupAlgorithm):
         elif self.model.__class__.__name__ == 'MNIST_SIMPLE_CNN' or self.model.__class__.__name__ == 'PreActResNet':
             features = self.model.features(x)
             outputs = self.model.final(features)
+            results['features'] = features
+        elif self.model.__class__.__name__ == 'ResNet':
+            self.model.features = partial(get_resnet_features_fn, self.model)
+            features = self.model.features(x)
+            outputs = self.model.fc(features)
             results['features'] = features
         else:
             outputs = self.model(x)

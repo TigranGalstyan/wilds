@@ -29,7 +29,8 @@ algorithm_defaults = {
         'eval_loader': 'standard',
         'hsic_beta': 1.0,
         'grad_penalty_lamb': 1.0,
-        'params_regex': '.*'
+        'params_regex': '.*',
+        'label_cond': False
     },
     'groupDRO': {
         'train_loader': 'standard',
@@ -52,5 +53,12 @@ algorithm_defaults = {
         'eval_loader': 'standard',
         'irm_lambda': 100.,
         'irm_penalty_anneal_iters': 500,
-    }
+    },
+    'DANN': {
+        'train_loader': 'standard',
+        'uniform_over_groups': False,
+        'eval_loader': 'standard',
+        'dann_lamb': 1.0,
+        'dann_dc_name': 'unspecified'
+    },
 }
