@@ -17,6 +17,7 @@ from wilds.datasets.iwildcam_dataset import IWildCamDataset
 from wilds.datasets.ogbmolpcba_dataset import OGBPCBADataset
 from wilds.datasets.poverty_dataset import PovertyMapDataset
 from wilds.datasets.waterbirds_dataset import WaterbirdsDataset
+from wilds.datasets.vlcs_dataset import VLCSDataset
 from wilds.datasets.yelp_dataset import YelpDataset
 # metrics
 from wilds.common.metrics.loss import ElementwiseLoss, Loss, MultiTaskLoss
@@ -25,6 +26,7 @@ from wilds.common.metrics.all_metrics import Accuracy, MultiTaskAccuracy, MSE
 datasets = {
     'amazon': AmazonDataset,
     'camelyon17': Camelyon17Dataset,
+    'vlcs': VLCSDataset,
     'celebA': CelebADataset,
     'civilcomments': CivilCommentsDataset,
     'cmnist': CMNISTDataset,
