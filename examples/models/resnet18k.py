@@ -43,11 +43,15 @@ class PreActResNet(nn.Module):
         self.layer3 = self._make_layer(block, 4*c, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, 8*c, num_blocks[3], stride=2)
 
+        self.n_outputs = 8*c*block.expansion
+
         if d_out is not None:
             self.d_out = d_out
-            self.final = nn.Linear(8*c*block.expansion * 9, d_out) # hack for Camelyon17
+            # self.final = nn.Linear(8*c*block.expansion * 9, d_out) # hack for Camelyon17
+            self.final = nn.Linear(self.n_outputs, d_out)
         else:
-            self.d_out = 8*c*block.expansion * 9 # hack for Camelyon17
+            self.d_out = self.n_outputs
+            # self.d_out = 8*c*block.expansion * 9 # hack for Camelyon17
             self.final = None
 
 

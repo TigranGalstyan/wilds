@@ -38,8 +38,9 @@ def register_parser(_container, parser_name):
 
 @register_parser(_container, 'mnist_simple_1hidden')
 def mnist_simple_1hidden(**kwargs):
-    num_domains = kwargs.get('num_domains', 4)
-    return MLP(num_features=180, num_domains=num_domains, hidden_sizes=[128])
+    num_domains = kwargs.get('num_domains', 5)
+    num_features = kwargs.get('num_features', 180)
+    return MLP(num_features=num_features, num_domains=num_domains, hidden_sizes=[128])
 
 
 def initialize_domain_classifier(name, **kwargs):

@@ -41,6 +41,7 @@ class DANN(SingleModelAlgorithm):
 
         # initialize domain classifier
         model.domain_classifier = initialize_domain_classifier(name=self.dc_name,
+                                                               num_features=model.n_outputs,
                                                                num_domains=self.num_domains).to(config.device)
 
         # initialize module
