@@ -153,18 +153,21 @@ def evaluate(algorithm, datasets, epoch, general_logger, config):
             epoch_y_true,
             epoch_metadata)
 
-        if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28', 'cmnist10']:
+        if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28', 'cmnist10', 'vlcs']:
+            num_envs = 4 if config.dataset == 'vlcs' else 5
             if config.dataset == 'camelyon17':
                 metadata = torch.tensor(epoch_metadata / 10, dtype=torch.long) # slides => hospitals
             else:
                 metadata = epoch_metadata
             c = dataset['dataset'].dataset._eval_grouper.metadata_to_group(metadata)
             c_splits[split] = c
-            c = torch.eye(5, device=c.device)[c]
+            c = torch.eye(num_envs, device=c.device)[c]
             if config.dataset == 'camelyon17':
                 n_classes = 2
             elif config.dataset == 'cmnist10':
                 n_classes = 10
+            elif config.dataset == 'vlcs':
+                n_classes = 5
             else:
                 n_classes = 3
             y = torch.eye(n_classes, device=epoch_y_true.device)[epoch_y_true]
@@ -185,7 +188,7 @@ def evaluate(algorithm, datasets, epoch, general_logger, config):
         general_logger.write(results_str)
         overall_results[split] = results
 
-    if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28']:
+    if config.dataset in ['camelyon17', 'cmnist', 'cmnist4', 'cmnist7', 'cmnist28', 'vlcs']:
 
         if config.save_z:
             torch.save(z_splits, os.path.join(config.log_dir, f'z_splits_epoch_{epoch}.pt'))
@@ -196,10 +199,11 @@ def evaluate(algorithm, datasets, epoch, general_logger, config):
         y = y_splits['train'][c_splits['train']!=0]
         c = c_splits['train'][c_splits['train']!=0]
 
-        c = torch.eye(5, device=c.device)[c]
+        num_envs = 4 if config.dataset == 'vlcs' else 5
+        c = torch.eye(num_envs, device=c.device)[c]
 
         if (not config.evaluate_all_splits) and ('val'  in config.eval_splits):
-            c_val = torch.eye(5, device=c.device)[c_splits['val']]
+            c_val = torch.eye(num_envs, device=c.device)[c_splits['val']]
             hsic_val_mean, hsic_val_std = conditional_hsic(torch.cat([z, z_splits['val']]),
                                                            torch.cat([y, y_splits['val']]), torch.cat([c, c_val]))
             general_logger.write("Hsic between hospitals {}: {:.4f} {:.4f}\n".format(
@@ -210,7 +214,7 @@ def evaluate(algorithm, datasets, epoch, general_logger, config):
 
 
         if (not config.evaluate_all_splits) and ('test'  in config.eval_splits):
-            c_test = torch.eye(5, device=c.device)[c_splits['test']]
+            c_test = torch.eye(num_envs, device=c.device)[c_splits['test']]
             hsic_test_mean, hsic_test_std = conditional_hsic(torch.cat([z, z_splits['test']]),
                                                              torch.cat([y, y_splits['test']]), torch.cat([c, c_test]))
             general_logger.write("Hsic between hospitals {}: {:.4f} {:.4f}\n".format(
