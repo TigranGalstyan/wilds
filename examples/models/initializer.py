@@ -61,6 +61,7 @@ def initialize_torchvision_model(name, d_out, **kwargs):
     else: # want to initialize a classifier for a particular num_classes
         last_layer = nn.Linear(d, d_out)
         model.d_out = d_out
+        model.n_outputs = d
     setattr(model, last_layer_name, last_layer)
     # set the feature dimension as an attribute for convenience
     return model
